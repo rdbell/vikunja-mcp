@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -78,8 +79,10 @@ func (c *VikunjaClient) makeRequest(method, path string, body interface{}) (*htt
 	return c.client.Do(req)
 }
 
-func (c *VikunjaClient) GetTasks(projectID int) ([]Task, error) {
-	resp, err := c.makeRequest("GET", fmt.Sprintf("/projects/%d/tasks", projectID), nil)
+func (c *VikunjaClient) GetTasks() ([]Task, error) {
+	path := "/tasks/all?filter=done%20%3D%20false%20%26%26%20due_date%20%3C%20now%20%26%26%20project%20%21%3D%2026&" +
+		"sort_by=due_date&order_by=asc&sort_by=id&order_by=desc&page=1"
+	resp, err := c.makeRequest("GET", path, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -97,10 +100,12 @@ func (c *VikunjaClient) GetTasks(projectID int) ([]Task, error) {
 	return tasks, nil
 }
 
-func (c *VikunjaClient) CreateTask(projectID int, title, description string) (*Task, error) {
+func (c *VikunjaClient) CreateTask(projectID int, title string) (*Task, error) {
+	now := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
 	taskData := map[string]interface{}{
-		"title":       title,
-		"description": description,
+		"title":    title,
+		"due_date": now,
+		"asignees": []int{1},
 	}
 
 	resp, err := c.makeRequest("PUT", fmt.Sprintf("/projects/%d/tasks", projectID), taskData)
